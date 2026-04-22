@@ -49,3 +49,8 @@ __pycache__/
 coverage/
 .nyc_output/
 gymflow_api.egg-info/
+
+# Playwright
+playwright-report/
+test-results/
+tests/smoke/.auth/
