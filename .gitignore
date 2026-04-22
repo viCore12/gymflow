@@ -39,6 +39,12 @@ Thumbs.db
 # Prisma generated client
 packages/db/src/generated/
 
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
 # Test coverage
 coverage/
 .nyc_output/
