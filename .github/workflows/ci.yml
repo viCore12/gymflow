@@ -13,16 +13,15 @@ concurrency:
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-  # Suppress Next.js telemetry in CI
   NEXT_TELEMETRY_DISABLED: 1
 
 jobs:
-  ci:
-    name: ${{ matrix.task }}
+  frontend:
+    name: frontend — ${{ matrix.task }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        task: [lint, typecheck, test, build]
+        task: [lint, typecheck, build]
       fail-fast: false
 
     steps:
@@ -48,16 +47,56 @@ jobs:
       - name: Run ${{ matrix.task }}
         run: pnpm turbo ${{ matrix.task }}
         env:
-          # Expose build-time env for Next.js
-          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_API_URL: http://localhost:8000
 
-  # Integration guard: ensure Docker images build cleanly
+  backend:
+    name: backend — ${{ matrix.task }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: [lint, test]
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Run lint
+        if: matrix.task == 'lint'
+        working-directory: apps/api
+        run: ruff check .
+
+      - name: Run tests
+        if: matrix.task == 'test'
+        working-directory: apps/api
+        run: pytest -v
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+
   docker-build:
     name: docker build (${{ matrix.app }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [api, admin, web]
+        include:
+          - app: api
+            context: apps/api
+          - app: admin
+            context: .
+          - app: web
+            context: .
       fail-fast: false
 
     steps:
@@ -70,11 +109,11 @@ jobs:
       - name: Build ${{ matrix.app }} image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: apps/${{ matrix.app }}/Dockerfile
-          target: runner
+          target: ${{ matrix.app == 'api' && 'runner' || 'runner' }}
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=http://localhost:3001
+            NEXT_PUBLIC_API_URL=http://localhost:8000
