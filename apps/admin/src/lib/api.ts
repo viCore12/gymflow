@@ -89,7 +89,110 @@ export interface CustomerUpdateBody {
   notes?: string;
 }
 
-// ── Customer API ─────────────────────────────────────────────────────────────
+// ── Staff types ───────────────────────────────────────────────────────────────
+
+export type StaffRole = "staff" | "coach" | "manager";
+
+export interface CommissionRate {
+  plan_sale_pct: number;
+  pt_session_rate_vnd: number;
+}
+
+export interface StaffListItem {
+  id: string;
+  employee_code: string;
+  full_name: string;
+  role: StaffRole;
+  is_active: boolean;
+  phone: string | null;
+  created_at: string;
+}
+
+export interface Staff {
+  id: string;
+  employee_code: string;
+  user_id: string | null;
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+  role: StaffRole;
+  hire_date: string;
+  base_salary: string;
+  commission_rate_json: string | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StaffCreateBody {
+  full_name: string;
+  phone?: string;
+  email?: string;
+  role?: StaffRole;
+  hire_date: string;
+  base_salary?: number;
+  commission_rate_json?: string;
+  notes?: string;
+}
+
+export interface StaffUpdateBody {
+  full_name?: string;
+  phone?: string;
+  email?: string;
+  role?: StaffRole;
+  base_salary?: number;
+  commission_rate_json?: string;
+  is_active?: boolean;
+  notes?: string;
+}
+
+// ── Shift types ────────────────────────────────────────────────────────────────
+
+export interface ShiftListItem {
+  id: string;
+  staff_id: string;
+  staff_full_name: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  shift_type: string;
+  is_cancelled: boolean;
+}
+
+export interface Shift {
+  id: string;
+  staff_id: string;
+  staff_full_name: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  shift_type: string;
+  notes: string | null;
+  is_cancelled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ShiftCreateBody {
+  staff_id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  shift_type?: string;
+  notes?: string;
+}
+
+export interface ShiftUpdateBody {
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+  shift_type?: string;
+  notes?: string;
+  is_cancelled?: boolean;
+}
+
+// ── Customer API ──────────────────────────────────────────────────────────────
 
 export const customersApi = {
   list(params: { q?: string; page?: number; per_page?: number }, token?: string) {
@@ -122,7 +225,7 @@ export const customersApi = {
   },
 };
 
-// ── Check-in API ─────────────────────────────────────────────────────────────
+// ── Check-in API ──────────────────────────────────────────────────────────────
 
 export const checkinsApi = {
   create(customer_id: string, notes?: string, token?: string) {
@@ -139,5 +242,93 @@ export const checkinsApi = {
     if (params.per_page) qs.set("per_page", String(params.per_page));
     const query = qs.toString() ? `?${qs}` : "";
     return apiFetch<PaginatedList<CheckIn>>(`/checkins/customer/${customer_id}${query}`, { token });
+  },
+};
+
+// ── Staff API ─────────────────────────────────────────────────────────────────
+
+export const staffApi = {
+  list(
+    params: { q?: string; role?: StaffRole; is_active?: boolean; page?: number; per_page?: number },
+    token?: string
+  ) {
+    const qs = new URLSearchParams();
+    if (params.q) qs.set("q", params.q);
+    if (params.role) qs.set("role", params.role);
+    if (params.is_active !== undefined) qs.set("is_active", String(params.is_active));
+    if (params.page) qs.set("page", String(params.page));
+    if (params.per_page) qs.set("per_page", String(params.per_page));
+    const query = qs.toString() ? `?${qs}` : "";
+    return apiFetch<PaginatedList<StaffListItem>>(`/staff${query}`, { token });
+  },
+
+  get(id: string, token?: string) {
+    return apiFetch<Staff>(`/staff/${id}`, { token });
+  },
+
+  create(body: StaffCreateBody, token?: string) {
+    return apiFetch<Staff>("/staff", {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  update(id: string, body: StaffUpdateBody, token?: string) {
+    return apiFetch<Staff>(`/staff/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  delete(id: string, token?: string) {
+    return apiFetch<void>(`/staff/${id}`, { method: "DELETE", token });
+  },
+};
+
+// ── Shifts API ────────────────────────────────────────────────────────────────
+
+export const shiftsApi = {
+  list(
+    params: {
+      staff_id?: string;
+      date_from?: string;
+      date_to?: string;
+      shift_type?: string;
+      page?: number;
+      per_page?: number;
+    },
+    token?: string
+  ) {
+    const qs = new URLSearchParams();
+    if (params.staff_id) qs.set("staff_id", params.staff_id);
+    if (params.date_from) qs.set("date_from", params.date_from);
+    if (params.date_to) qs.set("date_to", params.date_to);
+    if (params.shift_type) qs.set("shift_type", params.shift_type);
+    if (params.page) qs.set("page", String(params.page));
+    if (params.per_page) qs.set("per_page", String(params.per_page));
+    const query = qs.toString() ? `?${qs}` : "";
+    return apiFetch<PaginatedList<ShiftListItem>>(`/shifts${query}`, { token });
+  },
+
+  create(body: ShiftCreateBody, token?: string) {
+    return apiFetch<Shift>("/shifts", {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  update(id: string, body: ShiftUpdateBody, token?: string) {
+    return apiFetch<Shift>(`/shifts/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  delete(id: string, token?: string) {
+    return apiFetch<void>(`/shifts/${id}`, { method: "DELETE", token });
   },
 };
