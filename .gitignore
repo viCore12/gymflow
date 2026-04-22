@@ -8,6 +8,12 @@ dist/
 build/
 out/
 
+# Turbo
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
 # Environment — never commit secrets
 .env
 .env.local
@@ -24,15 +30,11 @@ Thumbs.db
 
 # IDE
 .vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
-
-# Turbo
-.turbo/
-
-# TypeScript
-*.tsbuildinfo
 
 # Prisma generated client
 packages/db/src/generated/

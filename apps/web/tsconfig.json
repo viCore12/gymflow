@@ -1,0 +1,7 @@
+{
+  "extends": "@gymflow/config/tsconfig/nextjs",
+  "compilerOptions": {
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}
