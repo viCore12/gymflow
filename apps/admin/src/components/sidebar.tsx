@@ -12,6 +12,7 @@ import {
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: "📊" },
   { href: "/customers", label: "Khách hàng", icon: "👥" },
+  { href: "/check-in", label: "Check-in", icon: "✅" },
   { href: "/packages", label: "Gói dịch vụ", icon: "📦" },
   { href: "/staff", label: "Nhân viên", icon: "👔" },
   { href: "/inventory", label: "Kho hàng", icon: "🗄️" },
