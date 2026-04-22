@@ -15,9 +15,10 @@
  *   Cap: 20,000,000 VND/month  |  Floor: none
  *
  * BRD verification scenarios (used as acceptance assertions):
- *   A — HLV Senior, 2 package sales + 30 PT sessions, 2 absent days → 9,843,636 VND
- *   B — Receptionist, 1 × 1-month package sale                      → 4,550,000 VND
- *   C — Head Coach, 5 × 12-month package + 60 PT sessions           → capped at 20,000,000 VND
+ *   A — HLV Senior, 2 pkg sales + 30 PT sessions, 20/22 days → 9,843,636 VND
+ *   B — Receptionist, 1 × 1-month package sale               → 4,550,000 VND
+ *   C — Head Coach, 5 × 12-month pkg + 60 PT sessions        → 25,000,000 VND (commission 15M < cap, not capped)
+ *   D — Cap scenario: raw commission 22M → capped to 20M     → base + 20,000,000 VND
  *
  * test.fixme: pending payroll UI (E4 Sprint 2). Tests are spec-complete and will
  * activate automatically once BLU-317 delivers the /hr/payroll frontend.
@@ -34,9 +35,14 @@ const STAFF_RECEPTIONIST = "Lễ tân Trần Thị A";
 const STAFF_HEAD_COACH = "Head Coach Lê Văn B";
 
 // BRD scenario expected totals (VND, integer — no decimals in VND)
-const SCENARIO_A_EXPECTED = 9_843_636; // HLV Senior, 2 gói + 30 buổi, 2 ngày nghỉ
-const SCENARIO_B_EXPECTED = 4_550_000; // Lễ tân, 1 gói 1 tháng
-const SCENARIO_C_EXPECTED = 20_000_000; // Head Coach, 5 gói 12 tháng + 60 buổi → capped
+// A: base 7M×20/22=6,363,636 + pkg commission 480,000 + PT 3,000,000 = 9,843,636
+// B: base 4,500,000 + pkg commission 50,000 (5% of 1M) = 4,550,000
+// C: base 10,000,000 + commission 15,000,000 (15M < 20M cap → no cap) = 25,000,000
+// D: cap scenario — raw commission 22M → capped to 20M
+const SCENARIO_A_EXPECTED = 9_843_636;
+const SCENARIO_B_EXPECTED = 4_550_000;
+const SCENARIO_C_EXPECTED = 25_000_000; // NOT capped: 15M commission < 20M cap
+const COMMISSION_CAP = 20_000_000;
 
 // Tolerance ±1 VND for rounding differences between DB precision and UI display
 const TOLERANCE = 1;
@@ -77,8 +83,8 @@ test.describe("Flow 5 — Payroll Run", () => {
       await pp.selectPeriod(TEST_PERIOD);
       await pp.runPayroll();
 
-      // D13: verify working days reflected (26 standard − 2 absent = 24)
-      await expect(pp.staffWorkingDays(STAFF_SENIOR_HLV)).toContainText("24");
+      // D13: verify working days reflected (22 standard − 2 absent = 20)
+      await expect(pp.staffWorkingDays(STAFF_SENIOR_HLV)).toContainText("20");
 
       const total = await pp.parsePay(pp.staffTotalPay(STAFF_SENIOR_HLV));
       expect(total).toBeGreaterThanOrEqual(SCENARIO_A_EXPECTED - TOLERANCE);
@@ -108,7 +114,7 @@ test.describe("Flow 5 — Payroll Run", () => {
   );
 
   test.fixme(
-    "Scenario C — Head Coach: commission cap at 20,000,000 VND (D12)",
+    "Scenario C — Head Coach: commission 15M under cap → total 25,000,000 VND",
     async ({ page }) => {
       const pp = new PayrollPage(page);
       await pp.navigate();
@@ -116,14 +122,38 @@ test.describe("Flow 5 — Payroll Run", () => {
       await pp.runPayroll();
 
       const total = await pp.parsePay(pp.staffTotalPay(STAFF_HEAD_COACH));
-      // D12: hard cap 20M regardless of uncapped calculation
+      // commission 15M < cap 20M → not capped, full 25M total
       expect(total).toBe(SCENARIO_C_EXPECTED);
 
-      // Payslip must show cap indicator
+      // Payslip breakdown: base 10M + commission 15M
       await pp.openPayslip(STAFF_HEAD_COACH);
+      const base = await pp.parsePay(pp.staffBaseSalary(STAFF_HEAD_COACH));
+      expect(base).toBe(10_000_000);
+      const commission = await pp.parsePay(pp.staffCommission(STAFF_HEAD_COACH));
+      expect(commission).toBe(15_000_000);
+      // No cap badge — commission is under the cap
       await expect(
         pp.page.locator("[data-testid='commission-capped-badge']")
-      ).toBeVisible();
+      ).not.toBeVisible();
+    }
+  );
+
+  test.fixme(
+    "Scenario D — Cap enforcement: any commission > 20,000,000 VND is capped (D12)",
+    async ({ page }) => {
+      const pp = new PayrollPage(page);
+      await pp.navigate();
+      await pp.selectPeriod(TEST_PERIOD);
+      await pp.runPayroll();
+
+      // All commission values in the table must be ≤ 20,000,000 VND
+      const rows = page.locator("[data-testid='payroll-row']");
+      const rowCount = await rows.count();
+      for (let i = 0; i < rowCount; i++) {
+        const commissionEl = rows.nth(i).locator("[data-testid='commission']");
+        const val = await pp.parsePay(commissionEl);
+        expect(val).toBeLessThanOrEqual(COMMISSION_CAP);
+      }
     }
   );
 
