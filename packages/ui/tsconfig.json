@@ -1,5 +1,5 @@
 {
-  "extends": "@gymflow/config/tsconfig/base",
+  "extends": "@gymflow/config/tsconfig/library",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"

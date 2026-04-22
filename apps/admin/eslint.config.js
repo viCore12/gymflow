@@ -1,1 +1,1 @@
-export { default } from "@gymflow/config/eslint/base";
+export { default } from "@gymflow/config/eslint/next";
