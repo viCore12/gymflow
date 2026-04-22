@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import enum
 import uuid
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, ForeignKey, Numeric, String, Text, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.order_line import OrderLine
 
 
 class OrderStatus(str, enum.Enum):
@@ -26,3 +32,5 @@ class Order(Base):
         Enum(OrderStatus, name="order_status"), default=OrderStatus.draft
     )
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    lines: Mapped[list[OrderLine]] = relationship(back_populates="order")

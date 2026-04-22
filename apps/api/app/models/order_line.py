@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 import uuid
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, Numeric, String, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.order import Order
 
 
 class OrderLine(Base):
@@ -23,3 +29,5 @@ class OrderLine(Base):
     qty: Mapped[int] = mapped_column(Integer, default=1)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     line_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+
+    order: Mapped[Order] = relationship(back_populates="lines")

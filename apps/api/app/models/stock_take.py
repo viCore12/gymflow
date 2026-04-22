@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import enum
 import uuid
 from datetime import datetime, timezone as tz
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Text, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.stock_take_line import StockTakeLine
 
 
 class StockTakeStatus(str, enum.Enum):
@@ -27,3 +33,5 @@ class StockTake(Base):
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id"), nullable=True
     )
+
+    lines: Mapped[list[StockTakeLine]] = relationship(back_populates="stock_take")
