@@ -1,7 +1,10 @@
+import time
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.customer import Customer
 from app.models.user import User, UserRole
 from app.security import create_access_token, hash_password
 
@@ -235,6 +238,50 @@ async def test_create_customer_with_contacts(
     )
     assert resp.status_code == 201
     assert len(resp.json()["contacts"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_search_100_customers_under_300ms(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """AC: 100 KH mẫu, search/filter phản hồi <300ms."""
+    headers = await _auth_headers(db_session)
+    for i in range(100):
+        db_session.add(
+            Customer(
+                code=f"KH-{i + 1:06d}",
+                full_name=f"Customer {i}",
+                phone=f"09{i:08d}",
+            )
+        )
+    await db_session.commit()
+
+    start = time.monotonic()
+    resp = await client.get("/v1/customers?q=Customer 5", headers=headers)
+    elapsed_ms = (time.monotonic() - start) * 1000
+
+    assert resp.status_code == 200
+    assert resp.json()["total"] >= 1
+    assert elapsed_ms < 300, f"Search took {elapsed_ms:.0f}ms, exceeds 300ms"
+
+
+@pytest.mark.asyncio
+async def test_filter_by_gender(client: AsyncClient, db_session: AsyncSession):
+    headers = await _auth_headers(db_session)
+    await client.post(
+        "/v1/customers",
+        json={"full_name": "Male User", "gender": "male"},
+        headers=headers,
+    )
+    await client.post(
+        "/v1/customers",
+        json={"full_name": "Female User", "gender": "female"},
+        headers=headers,
+    )
+    resp = await client.get("/v1/customers?gender=female", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 1
+    assert resp.json()["items"][0]["full_name"] == "Female User"
 
 
 @pytest.mark.asyncio
