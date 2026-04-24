@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.exceptions import AppError
