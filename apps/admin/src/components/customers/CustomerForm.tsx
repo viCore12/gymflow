@@ -42,7 +42,8 @@ export function CustomerForm({ customer }: CustomerFormProps) {
   function validate() {
     const errs: Record<string, string> = {};
     if (!form.full_name.trim()) errs.full_name = "Họ tên là bắt buộc";
-    if (form.phone && form.phone.length > 20) errs.phone = "Số điện thoại tối đa 20 ký tự";
+    if (!form.phone.trim()) errs.phone = "Số điện thoại là bắt buộc";
+    else if (form.phone.length > 20) errs.phone = "Số điện thoại tối đa 20 ký tự";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -119,7 +120,9 @@ export function CustomerForm({ customer }: CustomerFormProps) {
 
             {/* SĐT */}
             <div className="space-y-1">
-              <Label htmlFor="phone">Số điện thoại</Label>
+              <Label htmlFor="phone">
+                Số điện thoại <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="phone"
                 value={form.phone}
