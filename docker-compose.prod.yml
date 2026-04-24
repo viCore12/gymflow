@@ -1,0 +1,28 @@
+name: gymflow
+
+# Production override — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Removes dev volume mounts and uses the `runner` stage (optimised image).
+
+services:
+  api:
+    build:
+      target: runner
+    volumes: []
+    environment:
+      NODE_ENV: production
+
+  admin:
+    build:
+      target: runner
+    volumes: []
+    environment:
+      NODE_ENV: production
+
+  web:
+    build:
+      target: runner
+    volumes: []
+    environment:
+      NODE_ENV: production
