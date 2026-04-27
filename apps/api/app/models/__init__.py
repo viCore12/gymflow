@@ -5,6 +5,7 @@ from app.models.membership import Membership
 from app.models.membership_plan import MembershipPlan
 from app.models.order import Order
 from app.models.order_line import OrderLine
+from app.models.payment import Payment
 from app.models.post import Post
 from app.models.product import Product
 from app.models.staff import Staff
@@ -22,6 +23,7 @@ __all__ = [
     "MembershipPlan",
     "Order",
     "OrderLine",
+    "Payment",
     "Post",
     "Product",
     "Staff",
