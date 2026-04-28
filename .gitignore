@@ -44,11 +44,11 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+gymflow_api.egg-info/
 
 # Test coverage
 coverage/
 .nyc_output/
-gymflow_api.egg-info/
 
 # Playwright
 playwright-report/

@@ -332,3 +332,239 @@ export const shiftsApi = {
     return apiFetch<void>(`/shifts/${id}`, { method: "DELETE", token });
   },
 };
+
+// ── Inventory: Product types & API ──────────────────────────────────────────
+
+export interface Product {
+  id: string;
+  sku: string;
+  name: string;
+  price: number;
+  stock: number;
+  active: boolean;
+}
+
+export interface ProductCreateBody {
+  sku: string;
+  name: string;
+  price: number;
+  stock?: number;
+  active?: boolean;
+}
+
+export interface ProductUpdateBody {
+  name?: string;
+  price?: number;
+  stock?: number;
+  active?: boolean;
+}
+
+export const productsApi = {
+  list(params: { q?: string; active_only?: boolean }, token?: string) {
+    const qs = new URLSearchParams();
+    if (params.q) qs.set("q", params.q);
+    if (params.active_only !== undefined) qs.set("active_only", String(params.active_only));
+    const query = qs.toString() ? `?${qs}` : "";
+    return apiFetch<Product[]>(`/products${query}`, { token });
+  },
+
+  get(id: string, token?: string) {
+    return apiFetch<Product>(`/products/${id}`, { token });
+  },
+
+  create(body: ProductCreateBody, token?: string) {
+    return apiFetch<Product>("/products", {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  update(id: string, body: ProductUpdateBody, token?: string) {
+    return apiFetch<Product>(`/products/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+};
+
+// ── Inventory: Stock Move types & API ──────────────────────────────────────
+
+export type StockMoveType = "in" | "out" | "adjustment";
+export type StockMoveStatus = "draft" | "approved" | "rejected";
+
+export interface StockMove {
+  id: string;
+  product_id: string;
+  move_type: StockMoveType;
+  qty: number;
+  status: StockMoveStatus;
+  note: string | null;
+  created_by_id: string | null;
+  approved_by_id: string | null;
+  approved_at: string | null;
+  created_at: string;
+}
+
+export interface StockMoveCreateBody {
+  product_id: string;
+  move_type: StockMoveType;
+  qty: number;
+  note?: string;
+}
+
+export interface StockMoveApproveBody {
+  approved_by_id: string;
+}
+
+export const stockMovesApi = {
+  list(params: { product_id?: string; status?: StockMoveStatus }, token?: string) {
+    const qs = new URLSearchParams();
+    if (params.product_id) qs.set("product_id", params.product_id);
+    if (params.status) qs.set("status", params.status);
+    const query = qs.toString() ? `?${qs}` : "";
+    return apiFetch<StockMove[]>(`/inventory/moves${query}`, { token });
+  },
+
+  create(body: StockMoveCreateBody, token?: string) {
+    return apiFetch<StockMove>("/inventory/moves", {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  approve(id: string, body: StockMoveApproveBody, token?: string) {
+    return apiFetch<StockMove>(`/inventory/moves/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  reject(id: string, body: StockMoveApproveBody, token?: string) {
+    return apiFetch<StockMove>(`/inventory/moves/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+};
+
+// ── Inventory: Stock Lot types & API ──────────────────────────────────────
+
+export interface StockLot {
+  id: string;
+  product_id: string;
+  lot_number: string;
+  qty: number;
+  expiry_date: string | null;
+}
+
+export interface StockLotCreateBody {
+  product_id: string;
+  lot_number: string;
+  qty: number;
+  expiry_date?: string;
+}
+
+export const stockLotsApi = {
+  list(params: { product_id?: string }, token?: string) {
+    const qs = new URLSearchParams();
+    if (params.product_id) qs.set("product_id", params.product_id);
+    const query = qs.toString() ? `?${qs}` : "";
+    return apiFetch<StockLot[]>(`/inventory/lots${query}`, { token });
+  },
+
+  create(body: StockLotCreateBody, token?: string) {
+    return apiFetch<StockLot>("/inventory/lots", {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+};
+
+// ── Inventory: Stock Take types & API ──────────────────────────────────────
+
+export type StockTakeStatus = "draft" | "confirmed";
+
+export interface StockTakeLine {
+  id: string;
+  stock_take_id: string;
+  product_id: string;
+  system_qty: number;
+  counted_qty: number;
+}
+
+export interface StockTake {
+  id: string;
+  taken_at: string;
+  status: StockTakeStatus;
+  note: string | null;
+  created_by_id: string | null;
+  lines: StockTakeLine[];
+}
+
+export interface StockTakeCreateBody {
+  note?: string;
+}
+
+export interface StockTakeLineCreateBody {
+  product_id: string;
+  system_qty: number;
+  counted_qty: number;
+}
+
+export const stockTakesApi = {
+  list(token?: string) {
+    return apiFetch<StockTake[]>(`/inventory/stock-takes`, { token });
+  },
+
+  create(body: StockTakeCreateBody, token?: string) {
+    return apiFetch<StockTake>("/inventory/stock-takes", {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  addLine(take_id: string, body: StockTakeLineCreateBody, token?: string) {
+    return apiFetch<StockTakeLine>(`/inventory/stock-takes/${take_id}/lines`, {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    });
+  },
+
+  get(id: string, token?: string) {
+    return apiFetch<StockTake>(`/inventory/stock-takes/${id}`, { token });
+  },
+
+  close(take_id: string, token?: string) {
+    return apiFetch<StockTake>(`/inventory/stock-takes/${take_id}/close`, {
+      method: "POST",
+      body: JSON.stringify({}),
+      token,
+    });
+  },
+};
+
+// ── Inventory: Low Stock & Alert types & API ──────────────────────────────
+
+export interface LowStockItem {
+  id: string;
+  sku: string;
+  name: string;
+  stock: number;
+}
+
+export const inventoryApi = {
+  getLowStock(params: { threshold?: number }, token?: string) {
+    const qs = new URLSearchParams();
+    if (params.threshold) qs.set("threshold", String(params.threshold));
+    const query = qs.toString() ? `?${qs}` : "";
+    return apiFetch<LowStockItem[]>(`/inventory/low-stock${query}`, { token });
+  },
+};

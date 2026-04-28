@@ -244,7 +244,7 @@ async def test_create_customer_with_contacts(
 async def test_search_100_customers_under_300ms(
     client: AsyncClient, db_session: AsyncSession
 ):
-    """AC: 100 KH mẫu, search/filter phản hồi <300ms."""
+    """AC: 100 KH mẫu, search/filter phan hồi <300ms."""
     headers = await _auth_headers(db_session)
     for i in range(100):
         db_session.add(
@@ -288,3 +288,106 @@ async def test_filter_by_gender(client: AsyncClient, db_session: AsyncSession):
 async def test_unauthenticated_access(client: AsyncClient):
     resp = await client.get("/v1/customers")
     assert resp.status_code in (401, 403)
+
+
+@pytest.mark.asyncio
+async def test_list_items_include_email_dob_is_active(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """BLU-464: CustomerListItem must expose email, dob, is_active."""
+    headers = await _auth_headers(db_session)
+    resp = await client.post(
+        "/v1/customers",
+        json={
+            "full_name": "ListItem Test",
+            "dob": "1990-05-15",
+            "contacts": [
+                {"contact_type": "email", "value": "test@example.com", "is_primary": True},
+            ],
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    cid = resp.json()["id"]
+    assert resp.json()["is_active"] is True
+
+    list_resp = await client.get("/v1/customers", headers=headers)
+    assert list_resp.status_code == 200
+    items = list_resp.json()["items"]
+    entry = [i for i in items if i["id"] == cid][0]
+    assert entry["email"] == "test@example.com"
+    assert entry["dob"] == "1990-05-15"
+    assert entry["is_active"] is True
+
+
+@pytest.mark.asyncio
+async def test_list_item_email_fallback_no_primary(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """BLU-464: email fallbacks to first email when no primary."""
+    headers = await _auth_headers(db_session)
+    resp = await client.post(
+        "/v1/customers",
+        json={
+            "full_name": "Fallback Email Test",
+            "contacts": [
+                {"contact_type": "email", "value": "first@example.com"},
+                {"contact_type": "email", "value": "second@example.com"},
+            ],
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 201
+
+    list_resp = await client.get("/v1/customers", headers=headers)
+    items = list_resp.json()["items"]
+    entry = [i for i in items if i["id"] == resp.json()["id"]][0]
+    assert entry["email"] == "first@example.com"
+
+
+@pytest.mark.asyncio
+async def test_update_customer_is_active(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """BLU-464: is_active can be toggled via update."""
+    headers = await _auth_headers(db_session)
+    create_resp = await client.post(
+        "/v1/customers",
+        json={"full_name": "Toggle Active"},
+        headers=headers,
+    )
+    cid = create_resp.json()["id"]
+
+    patch_resp = await client.patch(
+        f"/v1/customers/{cid}",
+        json={"is_active": False},
+        headers=headers,
+    )
+    assert patch_resp.status_code == 200
+    assert patch_resp.json()["is_active"] is False
+
+    list_resp = await client.get("/v1/customers", headers=headers)
+    items = list_resp.json()["items"]
+    entry = [i for i in items if i["id"] == cid][0]
+    assert entry["is_active"] is False
+
+
+@pytest.mark.asyncio
+async def test_list_item_no_email_when_no_contact(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """BLU-464: email is None when no email contact exists."""
+    headers = await _auth_headers(db_session)
+    resp = await client.post(
+        "/v1/customers",
+        json={"full_name": "No Email User"},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+
+    list_resp = await client.get("/v1/customers", headers=headers)
+    items = list_resp.json()["items"]
+    entry = [i for i in items if i["id"] == resp.json()["id"]][0]
+    assert entry["email"] is None
+    assert entry["dob"] is None
+    assert entry["is_active"] is True

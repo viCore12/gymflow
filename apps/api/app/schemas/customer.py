@@ -39,6 +39,7 @@ class CustomerUpdate(BaseModel):
     phone: str | None = Field(None, max_length=20)
     dob: date | None = None
     gender: str | None = Field(None, pattern="^(male|female|other)$")
+    is_active: bool | None = None
     address: str | None = None
     notes: str | None = None
     branch_id: UUID | None = None
@@ -51,6 +52,7 @@ class CustomerResponse(BaseModel):
     phone: str | None
     dob: date | None
     gender: str | None
+    is_active: bool
     address: str | None
     notes: str | None
     branch_id: UUID | None
@@ -66,7 +68,10 @@ class CustomerListItem(BaseModel):
     code: str
     full_name: str
     phone: str | None
+    dob: date | None
     gender: str | None
+    is_active: bool
+    email: str | None
     created_at: datetime
 
     model_config = {"from_attributes": True}

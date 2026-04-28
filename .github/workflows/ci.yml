@@ -13,6 +13,7 @@ concurrency:
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  # Suppress Next.js telemetry in CI
   NEXT_TELEMETRY_DISABLED: 1
 
 jobs:
@@ -32,6 +33,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -83,6 +86,7 @@ jobs:
         env:
           DATABASE_URL: sqlite+aiosqlite:///./test.db
 
+  # Integration guard: ensure Docker images build cleanly
   docker-build:
     name: docker build (${{ matrix.app }})
     runs-on: ubuntu-latest

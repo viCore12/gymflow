@@ -2,7 +2,7 @@ import enum
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, Enum, Index, String, Text
+from sqlalchemy import Boolean, Date, Enum, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -47,9 +47,19 @@ class Customer(Base):
     gender: Mapped[Gender | None] = mapped_column(
         Enum(Gender, name="gender"), nullable=True
     )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     contacts: Mapped[list["CustomerContact"]] = relationship(
         back_populates="customer", cascade="all, delete-orphan", lazy="selectin"
     )
+
+    @property
+    def email(self) -> str | None:
+        """Return primary email from contacts, or first email if no primary."""
+        emails = [c for c in self.contacts if c.contact_type.value == "email"]
+        for c in emails:
+            if c.is_primary:
+                return c.value
+        return emails[0].value if emails else None

@@ -1,5 +1,5 @@
 FROM node:20-alpine AS base
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 # ── deps stage ────────────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@ COPY turbo.json ./
 EXPOSE 3000
 CMD ["pnpm", "--filter", "admin", "dev"]
 
-# ── build stage ───────────────────────────────────────────────────────────────
+# ── build stage ──────────────────────────────────────────────────────────────
 FROM deps AS builder
 COPY . .
 ARG NEXT_PUBLIC_API_URL
